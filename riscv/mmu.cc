@@ -34,11 +34,13 @@ void mmu_t::flush_icache()
     icache[i].tag = -1;
 }
 
+#ifdef CPU_NANHU
 void mmu_t::flush_icache_on_fence_i()
 {
   sim->on_fence_i();
   flush_icache();
 }
+#endif
 
 
 void mmu_t::flush_tlb()
@@ -51,6 +53,7 @@ void mmu_t::flush_tlb()
   flush_icache();
 }
 
+#ifdef CPU_NANHU
 void mmu_t::flush_tlb_on_sfence_vma()
 {
   sim->on_sfence_vma();
@@ -62,6 +65,7 @@ void mmu_t::flush_tlb_on_satp_update(bool is_safe)
   sim->on_satp_update(is_safe);
   flush_tlb();
 }
+#endif
 
 
 void throw_access_exception(bool virt, reg_t addr, access_type type)

@@ -75,8 +75,10 @@ const int NCSR = 4096;
    8)
 #endif
 
+#ifdef CPU_NANHU
 #define insn_length(x) \
   (insn_length_all(x) > MAX_INSN_LENGTH ? MAX_INSN_LENGTH : insn_length_all(x))
+#endif
 #ifdef DIFFTEST
 #define MAX_INSN_LENGTH 4
 #else

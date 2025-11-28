@@ -116,7 +116,10 @@ public:
     if (likely(!xlate_flags.is_special_access() && aligned && tlb_hit)) {
       res = *(target_endian<T>*)host_addr;
 #ifdef CPU_NANHU
-      sim->difftest_log_mem_load(host_addr, &res, sizeof(T));
+      auto vpn = addr / PGSIZE, pgoff = addr % PGSIZE;
+      auto& entry = tlb_store[vpn % TLB_ENTRIES];
+      auto target_addr = entry.data.target_addr + pgoff;
+      sim->difftest_log_mem_load(target_addr, &res, sizeof(T));
 #endif
     } else {
 #ifndef CPU_NANHU
@@ -140,7 +143,10 @@ public:
 
     if (likely(!xlate_flags.is_special_access() && aligned && tlb_hit)) {
       res = *(target_endian<T>*)host_addr;
-      sim->difftest_log_mem_load(host_addr, &res, sizeof(T));
+      auto vpn = addr / PGSIZE, pgoff = addr % PGSIZE;
+      auto& entry = tlb_store[vpn % TLB_ENTRIES];
+      auto target_addr = entry.data.target_addr + pgoff;
+      sim->difftest_log_mem_load(target_addr, &res, sizeof(T));
     } else {
       load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags, false);
     }

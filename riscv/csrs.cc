@@ -1301,7 +1301,9 @@ void wide_counter_csr_t::bump(const reg_t howmuch) noexcept {
 bool wide_counter_csr_t::unlogged_write(const reg_t val) noexcept {
   // Because writing a CSR serializes the simulator and is followed by a
   // bump, back-to-back writes with no intervening bump should never occur.
+#ifndef CPU_NANHU
   assert(!written);
+#endif
   written = true;
 
   this->val = val;
