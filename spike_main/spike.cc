@@ -21,6 +21,10 @@
 #include <cinttypes>
 #include <sstream>
 #include "../VERSION"
+#include <chrono>
+
+std::chrono::steady_clock::time_point g_start;
+std::chrono::steady_clock::time_point g_end;
 
 static void help(int exit_code = 1)
 {
@@ -365,6 +369,8 @@ int main(int argc, char** argv)
   cfg_arg_t<size_t> nprocs(1);
 
   cfg_t cfg;
+
+  g_start = std::chrono::steady_clock::now();
 
   auto const device_parser = [&plugin_device_factories](const char *s) {
     const std::string device_args(s);

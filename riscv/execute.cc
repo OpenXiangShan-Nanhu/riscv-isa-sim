@@ -6,6 +6,10 @@
 #include "disasm.h"
 #include "decode_macros.h"
 #include <cassert>
+#include <chrono>
+
+extern std::chrono::steady_clock::time_point g_start;
+extern std::chrono::steady_clock::time_point g_end;
 
 static void commit_log_reset(processor_t* p)
 {
@@ -298,6 +302,14 @@ void processor_t::step(size_t n)
 #endif
           if((int)fetch.insn.bits() == 0x5006b){
             printf("find end instr. spike end\n");
+            g_end = std::chrono::steady_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(g_end - g_start).count();
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(g_end - g_start).count();
+            auto duration_s = std::chrono::duration_cast<std::chrono::seconds>(g_end - g_start).count();
+            std::cout << "host time spent:" << std::endl;
+            std::cout << duration_us << " (μs)" << std::endl;
+            std::cout << duration_ms << " (ms)" << std::endl;
+            std::cout << duration_s << " (s)" << std::endl;
             exit(0);
           }
           pc = execute_insn_logged(this, pc, fetch);
@@ -325,6 +337,14 @@ void processor_t::step(size_t n)
 #endif
           if((int)fetch.insn.bits() == 0x5006b){
             printf("find end instr. spike end\n");
+            g_end = std::chrono::steady_clock::now();
+            auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(g_end - g_start).count();
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(g_end - g_start).count();
+            auto duration_s = std::chrono::duration_cast<std::chrono::seconds>(g_end - g_start).count();
+            std::cout << "host time spent:" << std::endl;
+            std::cout << duration_us << " (μs)" << std::endl;
+            std::cout << duration_ms << " (ms)" << std::endl;
+            std::cout << duration_s << " (s)" << std::endl;
             exit(0);
           }
           ic_entry = ic_entry->next;
