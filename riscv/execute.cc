@@ -296,6 +296,10 @@ void processor_t::step(size_t n)
 #ifdef DIFFTEST
           sim->difftest_log("pc = 0x%lx inst 0x%x", pc, fetch.insn);
 #endif
+          if((int)fetch.insn.bits() == 0x5006b){
+            printf("find end instr. spike end\n");
+            exit(0);
+          }
           pc = execute_insn_logged(this, pc, fetch);
           advance_pc();
 
@@ -319,6 +323,10 @@ void processor_t::step(size_t n)
 #ifdef DIFFTEST
           sim->difftest_log("pc = 0x%lx inst 0x%x", pc, fetch.insn);
 #endif
+          if((int)fetch.insn.bits() == 0x5006b){
+            printf("find end instr. spike end\n");
+            exit(0);
+          }
           ic_entry = ic_entry->next;
           auto new_pc = execute_insn_fast(this, pc, fetch);
           if (unlikely(ic_entry->tag != new_pc)) {
