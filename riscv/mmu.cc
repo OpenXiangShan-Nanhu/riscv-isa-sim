@@ -108,10 +108,14 @@ inline mmu_t::insn_parcel_t mmu_t::perform_intrapage_fetch(reg_t vaddr, uintptr_
 {
   insn_parcel_t res;
 
+#ifdef MULTICORE_DIFF
+  res = golden_pmem_read(host_addr , 2);
+#else
   if (host_addr)
     memcpy(&res, (char*)host_addr, sizeof(res));
   else if (!mmio_fetch(paddr, sizeof(res), (uint8_t*)&res))
     throw trap_instruction_access_fault(proc->state.v, vaddr, 0, 0);
+#endif
 
   return res;
 }
@@ -908,3 +912,21 @@ mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlat
   }
   return {addr, transformed_addr, mode, virt, xlate_flags, type};
 }
+
+#ifdef MULTICORE_DIFF
+
+extern uint8_t* golden_pmem;
+
+uint64_t mmu_t::golden_pmem_read(reg_t addr, int len){
+  assert(golden_pmem != NULL);
+  void *p = &golden_pmem[addr - 0x80000000];
+  switch (len) {
+    case 1: return *(uint8_t  *)p;
+    case 2: return *(uint16_t *)p;
+    case 4: return *(uint32_t *)p;
+    case 8: return *(uint64_t *)p;
+    default: assert(0);
+  }
+}
+
+#endif

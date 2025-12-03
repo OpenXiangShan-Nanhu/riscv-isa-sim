@@ -682,6 +682,15 @@ void difftest_set_mhartid(int mhartid) {
   overrided_mhartid = mhartid;
 }
 
+#ifdef MULTICORE_DIFF
+uint8_t *golden_pmem = NULL;
+
+void difftest_put_gmaddr(uint8_t* ptr) {
+  golden_pmem = ptr;
+}
+
+#endif
+
 void difftest_close() {
   delete ref;
 }

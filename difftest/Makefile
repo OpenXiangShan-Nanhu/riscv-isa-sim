@@ -5,7 +5,12 @@ CPU = NANHU
 
 GUEST_ISA = riscv64
 BUILD_DIR = $(abspath ./build)
+
+ifeq ($(MULTICORE_DIFF),1)
+TARGET    = $(BUILD_DIR)/$(GUEST_ISA)-spike-multicore-so
+else
 TARGET    = $(BUILD_DIR)/$(GUEST_ISA)-spike-so
+endif
 
 # Dependencies for building Spike
 SPIKE_PATH     = $(abspath ..)
@@ -19,6 +24,11 @@ SPIKE_LDFLAGS   =
 ifneq ($(CPU),)
 SPIKE_CFLAGS   += -DCPU_$(CPU)
 SPIKE_CXXFLAGS += -DCPU_$(CPU)
+endif
+
+ifeq ($(MULTICORE_DIFF),1)
+SPIKE_CFLAGS   += -DMULTICORE_DIFF
+SPIKE_CXXFLAGS += -DMULTICORE_DIFF
 endif
 
 ifeq ($(DEBUG),)

@@ -623,6 +623,9 @@ private:
   void check_triggers(triggers::operation_t operation, reg_t address, bool virt, reg_t tval, std::optional<reg_t> data);
   bool check_svukte_qualified(reg_t addr, reg_t mode, bool forced_virt);
   reg_t translate(mem_access_info_t access_info, reg_t len);
+#ifdef MULTICORE_DIFF
+  uint64_t golden_pmem_read(reg_t addr, int len);
+#endif
 
   reg_t pte_load(reg_t pte_paddr, reg_t addr, bool virt, access_type trap_type, size_t ptesize) {
     if (ptesize == 4)
