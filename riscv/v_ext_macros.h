@@ -436,7 +436,7 @@ static inline bool is_overlapped_widen(const int astart, int asize,
 
 #ifdef VARITH_AGNOSTIC_WRITE_ONE
 #define VI_LOOP_MASK_AGNOSTIC_FUN \
-  do { if (i >= vl) { res = (res & ~mmask) | ((1ULL << mpos)); } } while (0)
+  do { if (i >= vl) { P.VU.set_mask_elt(insn.rd(), i, 0x1); } } while (0)
 #else
 #define VI_LOOP_MASK_AGNOSTIC_FUN do { if (i >= vl) { break; } } while (0)
 #endif
@@ -459,14 +459,10 @@ static inline bool is_overlapped_widen(const int astart, int asize,
   reg_t vl = P.VU.vl->read(); \
   V_EXT_VSTART_CHECK; \
   for (reg_t i = P.VU.vstart->read(); i < P.VU.VLEN; ++i) { \
-    int midx = i / 64; \
-    int mpos = i % 64; \
-    uint64_t mmask = UINT64_C(1) << mpos; \
-    uint64_t vs2 = P.VU.elt<uint64_t>(insn.rs2(), midx); \
-    uint64_t vs1 = P.VU.elt<uint64_t>(insn.rs1(), midx); \
-    uint64_t &res = P.VU.elt<uint64_t>(insn.rd(), midx, true); \
+    bool vs2 = P.VU.mask_elt(insn.rs2(), i); \
+    bool vs1 = P.VU.mask_elt(insn.rs1(), i); \
     if(i < vl) \
-      res = (res & ~mmask) | ((op) & (1ULL << mpos)); \
+      P.VU.set_mask_elt(insn.rd(), i, (op)); \
       VI_LOOP_MASK_AGNOSTIC_FUN; \
   } \
   P.VU.vstart->write(0);
@@ -2622,7 +2618,9 @@ reg_t index[P.VU.vlmax]; \
   } \
   for (reg_t i = vl; i < std::max(P.VU.vlmax, (reg_t)(P.VU.VLEN/P.VU.vsew)); ++i) { \
     if (1 == P.VU.vta) { \
-      P.VU.elt<elt_width##_t>(vd + (nf - 1) * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(vd + (nf - 1) * emul, i, false)); \
+      for (reg_t fn = 0; fn < nf; ++fn) { \
+        P.VU.elt<elt_width##_t>(vd + fn * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(vd + fn * emul, i, false)); \
+      } \
     } \
   } \
   P.VU.vstart->write(0);
@@ -2663,6 +2661,7 @@ reg_t index[P.VU.vlmax]; \
       break; \
   } \
 
+#ifndef CPU_NANHU
 #define VI_LD_INDEX(elt_width, is_seg) \
   const reg_t nf = insn.v_nf() + 1; \
   VI_CHECK_LD_INDEX(elt_width); \
@@ -2698,6 +2697,67 @@ reg_t index[P.VU.vlmax]; \
     } \
   } \
   P.VU.vstart->write(0);
+#else
+#define VI_LD_INDEX(elt_width, is_seg) \
+  const reg_t nf = insn.v_nf() + 1; \
+  VI_CHECK_LD_INDEX(elt_width); \
+  const reg_t vl = P.VU.vl->read(); \
+  const reg_t baseAddr = RS1; \
+  const reg_t vd = insn.rd(); \
+  if (!is_seg) \
+    require(nf == 1); \
+  for (reg_t i = 0; i < vl; ++i) { \
+    VI_LDST_GET_INDEX(elt_width); \
+    VI_ELEMENT_SKIP; \
+    VI_STRIP(i); \
+    P.VU.vstart->write(i); \
+    for (reg_t fn = 0; fn < nf; ++fn) { \
+      switch (P.VU.vsew) { \
+        case e8: \
+          P.VU.elt<uint8_t>(vd + fn * flmul, vreg_inx, true) = \
+            MMU.load<uint8_t>(baseAddr + index + fn * 1); \
+          break; \
+        case e16: \
+          P.VU.elt<uint16_t>(vd + fn * flmul, vreg_inx, true) = \
+            MMU.load<uint16_t>(baseAddr + index + fn * 2); \
+          break; \
+        case e32: \
+          P.VU.elt<uint32_t>(vd + fn * flmul, vreg_inx, true) = \
+            MMU.load<uint32_t>(baseAddr + index + fn * 4); \
+          break; \
+        default: \
+          P.VU.elt<uint64_t>(vd + fn * flmul, vreg_inx, true) = \
+            MMU.load<uint64_t>(baseAddr + index + fn * 8); \
+          break; \
+      } \
+    } \
+  } \
+  for (reg_t i = vl; i < std::max(P.VU.vlmax, (reg_t)(P.VU.VLEN/P.VU.vsew)); ++i) { \
+    if (1 == P.VU.vta) { \
+      for (reg_t fn = 0; fn < nf; ++fn) { \
+        switch (P.VU.vsew) { \
+          case e8: \
+            P.VU.elt<uint8_t>(vd + fn * flmul, i, true) = \
+              vector_agnostic(P.VU.elt<uint8_t>(vd + fn * flmul, i, false)); \
+            break; \
+          case e16: \
+            P.VU.elt<uint16_t>(vd + fn * flmul, i, true) = \
+              vector_agnostic(P.VU.elt<uint16_t>(vd + fn * flmul, i, false)); \
+            break; \
+          case e32: \
+            P.VU.elt<uint32_t>(vd + fn * flmul, i, true) = \
+              vector_agnostic(P.VU.elt<uint32_t>(vd + fn * flmul, i, false)); \
+            break; \
+          default: \
+            P.VU.elt<uint64_t>(vd + fn * flmul, i, true) = \
+              vector_agnostic(P.VU.elt<uint64_t>(vd + fn * flmul, i, false)); \
+            break; \
+        } \
+      } \
+    } \
+  } \
+  P.VU.vstart->write(0);
+#endif
 
 #ifdef CPU_NANHU
 //add VI_ELEMENT_SKIP_NO_VMA_CHECK
