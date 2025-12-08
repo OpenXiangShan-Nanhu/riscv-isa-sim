@@ -64,7 +64,7 @@ T vector_agnostic(T value) {
   mata_action = 0; \
   if (insn.v_vm() == 0) { \
     BODY; \
-    skip = ((P.VU.elt<uint64_t>(0, midx) >> mpos) & 0x1) == 0; \
+    skip = !P.VU.mask_elt(0, i); \
     if (skip && 0 == P.VU.vma && i<P.VU.vl->read()) { \
         continue; \
     } \
@@ -77,7 +77,7 @@ T vector_agnostic(T value) {
   bool skip = false; \
   if (insn.v_vm() == 0) { \
     BODY; \
-    skip = ((P.VU.elt<uint64_t>(0, midx) >> mpos) & 0x1) == 0; \
+    skip = !P.VU.mask_elt(0, i); \
   }
 
 #define VI_ELEMENT_SKIP_NO_VMA_CHECK \
