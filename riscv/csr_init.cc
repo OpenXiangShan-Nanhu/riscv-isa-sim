@@ -636,4 +636,12 @@ void state_t::csr_init(processor_t* const proc, reg_t max_isa)
     add_hypervisor_csr(CSR_HVICTL, hvictl);
     add_hypervisor_csr(CSR_VSTOPI, vstopi);
   }
+
+  #ifdef CPU_NANHU
+  add_csr(CSR_SBPCTL, std::make_shared<basic_csr_t>(proc, CSR_SBPCTL, 0));
+  add_csr(CSR_SPFCTL, std::make_shared<basic_csr_t>(proc, CSR_SPFCTL, 0));
+  add_csr(CSR_SLVPREDCTL, std::make_shared<basic_csr_t>(proc, CSR_SLVPREDCTL, 0));
+  add_csr(CSR_SMBLOCKCTL, std::make_shared<basic_csr_t>(proc, CSR_SMBLOCKCTL, 0));
+  add_csr(CSR_SRNCTL, std::make_shared<basic_csr_t>(proc, CSR_SRNCTL, 0));
+  #endif
 }
