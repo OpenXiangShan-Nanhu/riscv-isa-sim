@@ -29,8 +29,14 @@ if (insn.v_vm() == 0) { \
 
 #endif
 
+#ifndef CPU_NANHU
 if (P.VU.vstart->read() < offset && i < offset)
   continue;
+#else
+if (P.VU.vstart->read() < offset && i < offset && i < vl){
+  continue;
+}
+#endif
 
 #ifdef CPU_NANHU
 if (0 == P.VU.vta && i >= vl) { \
