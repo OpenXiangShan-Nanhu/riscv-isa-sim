@@ -2611,9 +2611,14 @@ reg_t index[P.VU.vlmax]; \
     VI_STRIP(i); \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
-      elt_width##_t val = MMU.load<elt_width##_t>( \
-        baseAddr + (stride) + (offset) * sizeof(elt_width##_t), {.vldst = true}); \
-      P.VU.elt<elt_width##_t>(vd + fn * emul, vreg_inx, true) = val; \
+      if(!P.VU.mask_elt(0, i) && 1 == P.VU.vma && insn.v_vm() == 0){ \
+        P.VU.elt<elt_width##_t>(vd + fn * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(vd + fn * emul, i, false)); \
+      } \
+      else{ \
+        elt_width##_t val = MMU.load<elt_width##_t>( \
+          baseAddr + (stride) + (offset) * sizeof(elt_width##_t), {.vldst = true}); \
+        P.VU.elt<elt_width##_t>(vd + fn * emul, vreg_inx, true) = val; \
+      } \
     } \
   } \
   for (reg_t i = vl; i < std::max(P.VU.vlmax, (reg_t)(P.VU.VLEN/P.VU.vsew)); ++i) { \
@@ -2712,23 +2717,45 @@ reg_t index[P.VU.vlmax]; \
     VI_STRIP(i); \
     P.VU.vstart->write(i); \
     for (reg_t fn = 0; fn < nf; ++fn) { \
-      switch (P.VU.vsew) { \
-        case e8: \
-          P.VU.elt<uint8_t>(vd + fn * flmul, vreg_inx, true) = \
-            MMU.load<uint8_t>(baseAddr + index + fn * 1); \
-          break; \
-        case e16: \
-          P.VU.elt<uint16_t>(vd + fn * flmul, vreg_inx, true) = \
-            MMU.load<uint16_t>(baseAddr + index + fn * 2); \
-          break; \
-        case e32: \
-          P.VU.elt<uint32_t>(vd + fn * flmul, vreg_inx, true) = \
-            MMU.load<uint32_t>(baseAddr + index + fn * 4); \
-          break; \
-        default: \
-          P.VU.elt<uint64_t>(vd + fn * flmul, vreg_inx, true) = \
-            MMU.load<uint64_t>(baseAddr + index + fn * 8); \
-          break; \
+      if(!P.VU.mask_elt(0, i) && 1 == P.VU.vma && insn.v_vm() == 0){ \
+        switch (P.VU.vsew) { \
+          case e8: \
+            P.VU.elt<uint8_t>(vd + fn * flmul, vreg_inx, true) = \
+              vector_agnostic(P.VU.elt<uint8_t>(vd + fn * flmul, vreg_inx, false)); \
+            break; \
+          case e16: \
+            P.VU.elt<uint16_t>(vd + fn * flmul, vreg_inx, true) = \
+              vector_agnostic(P.VU.elt<uint16_t>(vd + fn * flmul, vreg_inx, false)); \
+            break; \
+          case e32: \
+            P.VU.elt<uint32_t>(vd + fn * flmul, vreg_inx, true) = \
+              vector_agnostic(P.VU.elt<uint32_t>(vd + fn * flmul, vreg_inx, false)); \
+            break; \
+          default: \
+            P.VU.elt<uint64_t>(vd + fn * flmul, vreg_inx, true) = \
+              vector_agnostic(P.VU.elt<uint64_t>(vd + fn * flmul, vreg_inx, false)); \
+            break; \
+        } \
+      } \
+      else{ \
+        switch (P.VU.vsew) { \
+          case e8: \
+            P.VU.elt<uint8_t>(vd + fn * flmul, vreg_inx, true) = \
+              MMU.load<uint8_t>(baseAddr + index + fn * 1); \
+            break; \
+          case e16: \
+            P.VU.elt<uint16_t>(vd + fn * flmul, vreg_inx, true) = \
+              MMU.load<uint16_t>(baseAddr + index + fn * 2); \
+            break; \
+          case e32: \
+            P.VU.elt<uint32_t>(vd + fn * flmul, vreg_inx, true) = \
+              MMU.load<uint32_t>(baseAddr + index + fn * 4); \
+            break; \
+          default: \
+            P.VU.elt<uint64_t>(vd + fn * flmul, vreg_inx, true) = \
+              MMU.load<uint64_t>(baseAddr + index + fn * 8); \
+            break; \
+        } \
       } \
     } \
   } \
