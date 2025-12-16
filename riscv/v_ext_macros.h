@@ -2902,6 +2902,47 @@ reg_t index[P.VU.vlmax]; \
   P.VU.vstart->write(0);
 #endif
 
+#ifdef CPU_NANHU
+#define VI_LDST_FF(elt_width) \
+  const reg_t nf = insn.v_nf() + 1; \
+  VI_CHECK_LOAD(elt_width, false); \
+  const reg_t vl = p->VU.vl->read(); \
+  const reg_t baseAddr = RS1; \
+  const reg_t rd_num = insn.rd(); \
+  for (reg_t i = p->VU.vstart->read(); i < vl; ++i) { \
+    VI_STRIP(i); \
+    VI_ELEMENT_SKIP; \
+    \
+    for (reg_t fn = 0; fn < nf; ++fn) { \
+      uint64_t val; \
+      try { \
+        val = MMU.load<elt_width##_t>( \
+          baseAddr + (i * nf + fn) * sizeof(elt_width##_t)); \
+      } catch (trap_t& t) { \
+        if (i == 0) \
+          throw; /* Only take exception on zeroth element */ \
+        /* Reduce VL if an exception occurs on a later element */ \
+        P.VU.vl->write_raw(i); \
+        break; \
+      } \
+      if(!P.VU.mask_elt(0, i) && 1 == P.VU.vma && insn.v_vm() == 0){ \
+        P.VU.elt<elt_width##_t>(rd_num + fn * emul, vreg_inx, true) = vector_agnostic(P.VU.elt<elt_width##_t>(rd_num + fn * emul, vreg_inx, false)); \
+      } \
+      else { \
+        p->VU.elt<elt_width##_t>(rd_num + fn * emul, vreg_inx, true) = val; \
+      } \
+    } \
+    \
+  } \
+  for (reg_t i = vl; i < std::max(P.VU.vlmax, (reg_t)(P.VU.VLEN/P.VU.vsew)); ++i) { \
+    if (1 == P.VU.vta) { \
+      for (reg_t fn = 0; fn < nf; ++fn) { \
+        P.VU.elt<elt_width##_t>(rd_num + fn * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(rd_num + fn * emul, i, false)); \
+      } \
+    } \
+  } \
+  p->VU.vstart->write(0);
+#else
 #define VI_LDST_FF(elt_width) \
   const reg_t nf = insn.v_nf() + 1; \
   VI_CHECK_LOAD(elt_width, false); \
@@ -2934,6 +2975,7 @@ reg_t index[P.VU.vlmax]; \
     } \
   } \
   p->VU.vstart->write(0);
+#endif
 
 #define VI_LD_WHOLE(elt_width) \
   require_vector_novtype(true); \
