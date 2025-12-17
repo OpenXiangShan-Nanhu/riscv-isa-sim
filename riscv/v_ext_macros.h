@@ -2622,7 +2622,7 @@ reg_t index[P.VU.vlmax]; \
     } \
   } \
   for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)); ++i) { \
-    if (1 == P.VU.vta) { \
+    if (1 == P.VU.vta || (insn.rs2() == 0x0b && insn.funct7() == 0x1 && insn.funct3() == 0)) { \
       for (reg_t fn = 0; fn < nf; ++fn) { \
         P.VU.elt<elt_width##_t>(vd + fn * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(vd + fn * emul, i, false)); \
       } \
