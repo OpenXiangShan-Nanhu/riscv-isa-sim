@@ -145,7 +145,7 @@
 #define CONFIG_TRIGGER_NUM     4
 #define CONFIG_MAX_PADDR_BITS  48
 #define CONFIG_MMU_CAPABILITY  IMPL_MMU_SV48
-#define CONFIG_MISALIGNED      false
+#define CONFIG_MISALIGNED      true
 
 #elif defined(CPU_ROCKET_CHIP)
 #define CONFIG_DIFF_ISA_STRING "rv64imafdczicsr_zifencei_zihpm_zicntr"
