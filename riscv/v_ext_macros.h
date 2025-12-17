@@ -2621,7 +2621,7 @@ reg_t index[P.VU.vlmax]; \
       } \
     } \
   } \
-  for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)); ++i) { \
+  for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)) * emul; ++i) { \
     if(vl == 0) \
       break; \
     if (1 == P.VU.vta || (insn.rs2() == 0x0b && insn.funct7() == 0x1 && insn.funct3() == 0)) { \
@@ -2938,7 +2938,7 @@ reg_t index[P.VU.vlmax]; \
     } \
     \
   } \
-  for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)); ++i) { \
+  for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)) * emul; ++i) { \
     if(vl == 0) \
       break; \
     if (1 == P.VU.vta) { \
