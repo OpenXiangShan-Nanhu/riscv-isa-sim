@@ -2621,7 +2621,7 @@ reg_t index[P.VU.vlmax]; \
       } \
     } \
   } \
-  for (reg_t i = vl; i < std::max(P.VU.vlmax, (reg_t)(P.VU.VLEN/P.VU.vsew)); ++i) { \
+  for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)); ++i) { \
     if (1 == P.VU.vta) { \
       for (reg_t fn = 0; fn < nf; ++fn) { \
         P.VU.elt<elt_width##_t>(vd + fn * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(vd + fn * emul, i, false)); \
@@ -2934,7 +2934,7 @@ reg_t index[P.VU.vlmax]; \
     } \
     \
   } \
-  for (reg_t i = vl; i < std::max(P.VU.vlmax, (reg_t)(P.VU.VLEN/P.VU.vsew)); ++i) { \
+  for (reg_t i = vl; i < (reg_t)(P.VU.VLEN/(sizeof(elt_width##_t) * 8)); ++i) { \
     if (1 == P.VU.vta) { \
       for (reg_t fn = 0; fn < nf; ++fn) { \
         P.VU.elt<elt_width##_t>(rd_num + fn * emul, i, true) = vector_agnostic(P.VU.elt<elt_width##_t>(rd_num + fn * emul, i, false)); \
