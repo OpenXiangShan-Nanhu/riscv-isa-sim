@@ -3492,6 +3492,243 @@ reg_t index[P.VU.vlmax]; \
   VI_VFP_LOOP_END
 #endif
 
+
+#ifdef CPU_NANHU
+#define VI_VFP_VV_LOOP_UNORDER_REDUCTION_SUM() \
+  VI_CHECK_REDUCTION(false) \
+  VI_VFP_COMMON \
+  switch (P.VU.vsew) { \
+    case e32: { \
+      float32_t vd_0 = P.VU.elt<float32_t>(rd_num, 0); \
+      float32_t vs1_0 = P.VU.elt<float32_t>(rs1_num, 0); \
+      float32_t vs2_array[32]; \
+      for (reg_t i = 0; i < 32; ++i) { \
+        vs2_array[i] = (float32_t)0; \
+      } \
+      V_EXT_VSTART_CHECK; \
+      for (reg_t i = 0; i < vl; ++i) { \
+        VI_LOOP_ELEMENT_SKIP_NO_VMA_CHECK(); \
+        if(i < vl && false == skip){ \
+          vs2_array[i] = P.VU.elt<float32_t>(rs2_num, i); \
+        } else{ \
+          vs2_array[i] = (float32_t)0; \
+        } \
+      } \
+      if(vl > 16){ \
+        for(reg_t i = 0; i < 4; i=i+1){ \
+          vs2_array[4*i] = f32_add(vs2_array[8*i] , vs2_array[8*i + 4]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+1] = f32_add(vs2_array[8*i + 1] , vs2_array[8*i + 5]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+2] = f32_add(vs2_array[8*i + 2] , vs2_array[8*i + 6]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+3] = f32_add(vs2_array[8*i + 3] , vs2_array[8*i + 7]); \
+          set_fp_exceptions; \
+        } \
+        for(reg_t i = 0; i < 2; i=i+1){ \
+          vs2_array[4*i] = f32_add(vs2_array[8*i] , vs2_array[8*i + 4]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+1] = f32_add(vs2_array[8*i + 1] , vs2_array[8*i + 5]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+2] = f32_add(vs2_array[8*i + 2] , vs2_array[8*i + 6]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+3] = f32_add(vs2_array[8*i + 3] , vs2_array[8*i + 7]); \
+          set_fp_exceptions; \
+        } \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[4]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[5]); \
+        set_fp_exceptions; \
+        vs2_array[2] = f32_add(vs2_array[2] , vs2_array[6]); \
+        set_fp_exceptions; \
+        vs2_array[3] = f32_add(vs2_array[3] , vs2_array[7]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f32_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      if(vl > 8 && vl <= 16){ \
+        for(reg_t i = 0; i < 2; i=i+1){ \
+          vs2_array[4*i] = f32_add(vs2_array[8*i] , vs2_array[8*i + 4]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+1] = f32_add(vs2_array[8*i + 1] , vs2_array[8*i + 5]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+2] = f32_add(vs2_array[8*i + 2] , vs2_array[8*i + 6]); \
+          set_fp_exceptions; \
+          vs2_array[4*i+3] = f32_add(vs2_array[8*i + 3] , vs2_array[8*i + 7]); \
+          set_fp_exceptions; \
+        } \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[4]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[5]); \
+        set_fp_exceptions; \
+        vs2_array[2] = f32_add(vs2_array[2] , vs2_array[6]); \
+        set_fp_exceptions; \
+        vs2_array[3] = f32_add(vs2_array[3] , vs2_array[7]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f32_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      else if(vl > 4 && vl <= 8){ \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[4]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[5]); \
+        set_fp_exceptions; \
+        vs2_array[2] = f32_add(vs2_array[2] , vs2_array[6]); \
+        set_fp_exceptions; \
+        vs2_array[3] = f32_add(vs2_array[3] , vs2_array[7]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f32_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      else if(vl > 2 && vl <= 4){ \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f32_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f32_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      else{ \
+        vs2_array[0] = f32_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f32_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \        
+      } \
+      P.VU.vstart->write(0); \
+      if (vl > 0) { \
+        P.VU.elt<type_sew_t<32>::type>(rd_num, 0, true) = vd_0.v; \
+      } \
+      if (insn.v_vm() == 0){ \
+        int mask_cnt = 0; \
+        for (reg_t i = 0; i < vl; ++i) { \
+          mask_cnt += P.VU.mask_elt(0,i); \
+        } \
+        if(mask_cnt == 0) \
+          P.VU.elt<type_sew_t<32>::type>(rd_num, 0, true) = vs1_0.v; \
+      } \
+      for (reg_t i = 1; i < (P.VU.VLEN/P.VU.vsew); ++i) { \
+        if(1 == P.VU.vta) { \
+          P.VU.elt<type_sew_t<32>::type>(rd_num, i, true) = vector_agnostic(P.VU.elt<type_sew_t<32>::type>(rd_num, i, false)); \
+        } \
+      } \
+      break; \
+    } \
+    case e64: { \
+      float64_t vd_0 = P.VU.elt<float64_t>(rd_num, 0); \
+      float64_t vs1_0 = P.VU.elt<float64_t>(rs1_num, 0); \
+      float64_t vs2_array[16]; \
+      for (reg_t i = 0; i < 16; ++i) { \
+        vs2_array[i] = (float64_t)0; \
+      } \
+      V_EXT_VSTART_CHECK; \
+      for (reg_t i = 0; i < vl; ++i) { \
+        VI_LOOP_ELEMENT_SKIP_NO_VMA_CHECK(); \
+        if(i < vl && false == skip){ \
+          vs2_array[i] = P.VU.elt<float64_t>(rs2_num, i); \
+        } else{ \
+          vs2_array[i] = (float64_t)0; \
+        } \
+      } \
+      if(vl > 8){ \
+        for(reg_t i = 0; i < 4; i=i+1){ \
+          vs2_array[2*i] = f64_add(vs2_array[4*i] , vs2_array[4*i + 2]); \
+          set_fp_exceptions; \
+          vs2_array[2*i+1] = f64_add(vs2_array[4*i + 1] , vs2_array[4*i + 3]); \
+          set_fp_exceptions; \
+        } \
+        for(reg_t i = 0; i < 2; i=i+1){ \
+          vs2_array[2*i] = f64_add(vs2_array[4*i] , vs2_array[4*i + 2]); \
+          set_fp_exceptions; \
+          vs2_array[2*i+1] = f64_add(vs2_array[4*i + 1] , vs2_array[4*i + 3]); \
+          set_fp_exceptions; \
+        } \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f64_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f64_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      else if(vl <= 8 && vl > 4){ \
+        for(reg_t i = 0; i < 2; i=i+1){ \
+          vs2_array[2*i] = f64_add(vs2_array[4*i] , vs2_array[4*i + 2]); \
+          set_fp_exceptions; \
+          vs2_array[2*i+1] = f64_add(vs2_array[4*i + 1] , vs2_array[4*i + 3]); \
+          set_fp_exceptions; \
+        } \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f64_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f64_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      else if(vl > 2 && vl <= 4){ \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[2]); \
+        set_fp_exceptions; \
+        vs2_array[1] = f64_add(vs2_array[1] , vs2_array[3]); \
+        set_fp_exceptions; \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f64_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      else{ \
+        vs2_array[0] = f64_add(vs2_array[0] , vs2_array[1]); \
+        set_fp_exceptions; \
+        vd_0 = f64_add(vs2_array[0] , vs1_0); \
+        set_fp_exceptions; \
+      } \
+      P.VU.vstart->write(0); \
+      if (vl > 0) { \
+        P.VU.elt<type_sew_t<64>::type>(rd_num, 0, true) = vd_0.v; \
+      } \
+      if (insn.v_vm() == 0){ \
+        int mask_cnt = 0; \
+        for (reg_t i = 0; i < vl; ++i) { \
+          mask_cnt += P.VU.mask_elt(0,i); \
+        } \
+        if(mask_cnt == 0) \
+          P.VU.elt<type_sew_t<64>::type>(rd_num, 0, true) = vs1_0.v; \
+      } \
+      for (reg_t i = 1; i < (P.VU.VLEN/P.VU.vsew); ++i) { \
+        if(1 == P.VU.vta) { \
+          P.VU.elt<type_sew_t<64>::type>(rd_num, i, true) = vector_agnostic(P.VU.elt<type_sew_t<64>::type>(rd_num, i, false)); \
+        } \
+      } \
+      break; \
+    } \
+    default: \
+      require(0); \
+      break; \
+  }; \
+
+#endif
+
 #ifdef CPU_NANHU
 #define VI_VFP_VV_LOOP_REDUCTION(BODY16, BODY32, BODY64) \
   VI_CHECK_REDUCTION(false) \
