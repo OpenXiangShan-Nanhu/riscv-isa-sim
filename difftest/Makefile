@@ -1,5 +1,18 @@
-CC  = clang
-CXX = clang++
+HAS_CLANG := $(shell command -v clang 2>/dev/null)
+
+ifeq ($(HAS_CLANG),)
+  CC = gcc
+  CXX = g++
+    GCC_MAJOR := $(shell $(CC) -dumpversion | cut -d. -f1)
+    $(info Using GCC version $(GCC_MAJOR))
+
+    ifneq ($(shell [ $(GCC_MAJOR) -lt 11 ] && echo yes),)
+      $(error GCC version must be >= 11 for Spike)
+    endif
+else
+  CC  = clang
+  CXX = clang++
+endif
 
 CPU = NANHU
 
