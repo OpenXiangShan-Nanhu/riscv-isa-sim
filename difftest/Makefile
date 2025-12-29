@@ -44,10 +44,15 @@ SPIKE_CFLAGS   += -DMULTICORE_DIFF
 SPIKE_CXXFLAGS += -DMULTICORE_DIFF
 endif
 
-ifeq ($(DEBUG),)
-SPIKE_CFLAGS   += -g0
-SPIKE_CXXFLAGS += -g0
+ifeq ($(DEBUG),1)
+  $(info >>> Building in DEBUG mode (DEBUG=1))
+  SPIKE_CFLAGS   += -O0 -g -DDEBUG
+  SPIKE_CXXFLAGS += -O0 -g -DDEBUG
+else
+  SPIKE_CFLAGS   += -g0
+  SPIKE_CXXFLAGS += -g0
 endif
+
 
 ifeq ($(SANCOV),1)
 SPIKE_CFLAGS   += -fsanitize-coverage=trace-pc-guard -fsanitize-coverage=pc-table -g
