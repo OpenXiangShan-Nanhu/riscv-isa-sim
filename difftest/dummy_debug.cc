@@ -32,6 +32,10 @@ bool dummy_debug_t::store(reg_t addr, size_t len, const uint8_t* bytes)
   return true;
 }
 
+unsigned long int dummy_debug_t::size(){
+  return DUMMY_MEM_SIZE_BYTE;
+}
+
 // bool dummy_debug_t::update_dummy_mem(reg_t addr, size_t len, const uint8_t* bytes)
 // {
 //   assert(addr < DM_BASE_ADDR);

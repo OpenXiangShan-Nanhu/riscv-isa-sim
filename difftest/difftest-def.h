@@ -6,11 +6,14 @@
 
 #define CONFIG_NO_DIRTY_VS
 #define CONFIG_DIFF_RVV
+#define CONFIG_DIFF_FPU
 #define CONFIG_DIFF_ZICOND
 #define CONFIG_DIFF_ZICNTR
 #define CONFIG_DIFF_ZIHPM
 #define VARITH_AGNOSTIC_WRITE_ONE
 #define CONFIG_DIFF_SDTRIG
+#define CONFIG_DIFF_DEBUG_MODE
+
 
 #define CONFIG_DIFF_ISA_STRING  "RV64IMAFDCV_zicond_zicntr_zihpm_sdtrig_zba_zbb_zbc_zbs_smrnmi"
 #define CONFIG_MEMORY_SIZE     (16 * 1024 * 1024 * 1024UL)
