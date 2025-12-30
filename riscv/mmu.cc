@@ -468,8 +468,15 @@ void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes
     }
 #endif
 
+#ifdef CPU_NANHU
+    if (require_alignment){
+      sim->sc_failed = false;
+      throw trap_store_access_fault(gva, transformed_addr, 0, 0);
+    }
+#else
     if (require_alignment)
       throw trap_store_access_fault(gva, transformed_addr, 0, 0);
+#endif
 
     reg_t len_page0 = std::min(len, PGSIZE - transformed_addr % PGSIZE);
     store_slow_path_intrapage(len_page0, bytes, access_info, actually_store);
