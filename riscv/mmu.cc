@@ -422,7 +422,12 @@ void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes
 void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool UNUSED require_alignment)
 #endif
 {
+  
+#ifdef CPU_NANHU
+  if (likely(!xlate_flags.is_special_access() && require_alignment == 0)) {
+#else
   if (likely(!xlate_flags.is_special_access())) {
+#endif
     // Fast path for simple cases
     auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_store, original_addr, TLB_FLAGS & ~TLB_CHECK_TRIGGERS);
     bool intrapage = (original_addr % PGSIZE) + len <= PGSIZE;
