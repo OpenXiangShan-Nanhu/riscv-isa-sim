@@ -14,8 +14,10 @@
 #define CONFIG_DIFF_SDTRIG
 #define CONFIG_DIFF_DEBUG_MODE
 
+#define CONFIG_UARTLITE
 
-#define CONFIG_DIFF_ISA_STRING  "RV64IMAFDCV_zicond_zicntr_zihpm_sdtrig_zba_zbb_zbc_zbs_smrnmi"
+
+#define CONFIG_DIFF_ISA_STRING  "RV64IMFDCV_zicond_zicntr_zihpm_sdtrig_zba_zbb_zbc_zbs_zbkb_zbkc_zbkx_smrnmi"
 #define CONFIG_MEMORY_SIZE     (16 * 1024 * 1024 * 1024UL)
 #define CONFIG_FLASH_BASE      0x10000000UL
 #define CONFIG_FLASH_SIZE      0x10000000UL

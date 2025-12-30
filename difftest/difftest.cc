@@ -505,6 +505,9 @@ const std::vector<std::pair<reg_t, abstract_device_t*>> DifftestRef::create_devi
   rom_data.resize(CONFIG_FLASH_SIZE, 0);
 #endif
   return std::vector<std::pair<reg_t, abstract_device_t*>>{
+#ifdef CONFIG_UARTLITE
+    std::make_pair(reg_t(UARTLITE_BASE_ADDR), new uartlite_t),
+#endif
 #ifdef CONFIG_DIFF_DEBUG_MODE
     std::make_pair(reg_t(DM_BASE_ADDR), new dummy_debug_t),
 #endif

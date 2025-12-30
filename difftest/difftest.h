@@ -8,6 +8,7 @@
 
 #include "difftest-def.h"
 #include "dummy_debug.h"
+#include "uartlite.h"
 #include "sim.h"
 
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
