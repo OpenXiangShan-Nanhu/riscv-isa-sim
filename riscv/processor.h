@@ -300,7 +300,11 @@ public:
   mmu_t* get_mmu() { return mmu; }
   state_t* get_state() { return &state; }
   unsigned get_xlen() const { return xlen; }
+#ifdef CPU_NANHU
+  unsigned paddr_bits() { return isa.get_max_xlen() == 64 ? 48 : 34; }
+#else
   unsigned paddr_bits() { return isa.get_max_xlen() == 64 ? 56 : 34; }
+#endif
   unsigned get_const_xlen() const {
     // Any code that assumes a const xlen should use this method to
     // document that assumption. If Spike ever changes to allow
