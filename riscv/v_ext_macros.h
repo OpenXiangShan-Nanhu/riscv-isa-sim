@@ -3160,6 +3160,7 @@ reg_t index[P.VU.vlmax]; \
 #define VI_VFP_BASE \
   require_fp; \
   require_vector(true); \
+  dirty_fp_state; \
   reg_t UNUSED vl = P.VU.vl->read(); \
   reg_t UNUSED rd_num = insn.rd(); \
   reg_t UNUSED rs1_num = insn.rs1(); \
