@@ -421,6 +421,11 @@ reg_t tvec_csr_t::read() const noexcept {
 bool tvec_csr_t::unlogged_write(const reg_t val) noexcept {
 #if defined(CPU_NUTSHELL)
   this->val = val & ~(reg_t)3;
+#elif defined(CPU_NANHU)
+  if((val & (reg_t)3) < 2)
+    this->val = val;
+  else
+    this->val = (this->val & (reg_t)3) | (val & ~(reg_t)3);
 #else
   this->val = val & ~(reg_t)2;
 #endif
