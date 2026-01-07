@@ -3553,7 +3553,7 @@ reg_t index[P.VU.vlmax]; \
         vd_0 = f32_add(vs2_array[0] , vs1_0); \
         set_fp_exceptions; \
       } \
-      if(vl > 8 && vl <= 16){ \
+      else if(vl > 8 && vl <= 16){ \
         for(reg_t i = 0; i < 2; i=i+1){ \
           vs2_array[4*i] = f32_add(vs2_array[8*i] , vs2_array[8*i + 4]); \
           set_fp_exceptions; \
