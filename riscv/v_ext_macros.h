@@ -2919,20 +2919,20 @@ reg_t index[P.VU.vlmax]; \
     \
     for (reg_t fn = 0; fn < nf; ++fn) { \
       uint64_t val; \
-      try { \
-        val = MMU.load<elt_width##_t>( \
-          baseAddr + (i * nf + fn) * sizeof(elt_width##_t)); \
-      } catch (trap_t& t) { \
-        if (i == 0) \
-          throw; /* Only take exception on zeroth element */ \
-        /* Reduce VL if an exception occurs on a later element */ \
-        P.VU.vl->write_raw(i); \
-        break; \
-      } \
       if(!P.VU.mask_elt(0, i) && 1 == P.VU.vma && insn.v_vm() == 0){ \
         P.VU.elt<elt_width##_t>(rd_num + fn * emul, vreg_inx, true) = vector_agnostic(P.VU.elt<elt_width##_t>(rd_num + fn * emul, vreg_inx, false)); \
       } \
       else { \
+        try { \
+          val = MMU.load<elt_width##_t>( \
+            baseAddr + (i * nf + fn) * sizeof(elt_width##_t)); \
+        } catch (trap_t& t) { \
+          if (i == 0) \
+            throw; /* Only take exception on zeroth element */ \
+          /* Reduce VL if an exception occurs on a later element */ \
+          P.VU.vl->write_raw(i); \
+          break; \
+        } \
         p->VU.elt<elt_width##_t>(rd_num + fn * emul, vreg_inx, true) = val; \
       } \
     } \
