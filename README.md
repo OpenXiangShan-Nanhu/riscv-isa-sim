@@ -113,6 +113,14 @@ install path.
 If your system uses the `yum` package manager, you can substitute
 `yum install dtc` for the first step.
 
+Build Steps on Difftest
+----------------------
+
+    $ cd difftest // Navigate to the difftest directory
+    $ make -j //Build and generate riscv64-spike-so, output to ./difftest/build
+    $ make -j DEBUG_LOG=1 //Build and enable debug logging
+    $ make -j MULTICORE_DIFF=1 //Build and generate riscv64-spike-multicore-so for multi-core
+
 Build Steps on OpenBSD
 ----------------------
 
