@@ -173,7 +173,7 @@ public:
   bool sc_failed = false;
 
   void difftest_log(const char *__restrict __fmt, ...) {
-    if (enable_difftest_logs) [[unlikely]] {
+#ifdef DIFFTEST_DEBUG
       va_list args;
       va_start(args, __fmt);
       fprintf(stderr, "[Spike] ");
@@ -181,7 +181,7 @@ public:
       fprintf(stderr, "\n");
       fflush(stderr);
       va_end(args);
-    }
+#endif
   }
 
 #define __DIFFTEST_LOG_INTERFACE(name, type)                                      \
