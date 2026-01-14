@@ -88,7 +88,11 @@ void throw_access_exception(bool virt, reg_t addr, access_type type)
   }
 }
 
+#ifdef CPU_NANHU
+reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len, bool is_amo)
+#else
 reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
+#endif
 {
   reg_t addr = access_info.transformed_vaddr;
   access_type type = access_info.type;
@@ -98,7 +102,11 @@ reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
   bool virt = access_info.effective_virt;
   reg_t mode = (reg_t) access_info.effective_priv;
 
+#ifdef CPU_NANHU
+  reg_t paddr = walk(access_info , is_amo) | (addr & (PGSIZE-1));
+#else
   reg_t paddr = walk(access_info) | (addr & (PGSIZE-1));
+#endif
   if (!pmp_ok(paddr, len, access_info.flags.ss_access ? STORE : type, mode, access_info.flags.hlvx))
     throw_access_exception(virt, addr, access_info.flags.ss_access ? STORE : type);
   return paddr;
@@ -140,7 +148,11 @@ mmu_t::insn_parcel_t mmu_t::fetch_slow_path(reg_t vaddr)
     check_triggers(triggers::OPERATION_EXECUTE, vaddr, access_info.effective_virt);
 
   if (!tlb_hit) {
+    #ifdef CPU_NANHU
+    paddr = translate(access_info, sizeof(insn_parcel_t), false);
+    #else
     paddr = translate(access_info, sizeof(insn_parcel_t));
+    #endif
     host_addr = (uintptr_t)sim->addr_to_mem(paddr);
 
     if (proc->extension_enabled(EXT_ZICCID)) {
@@ -284,13 +296,21 @@ inline void mmu_t::perform_intrapage_load(reg_t vaddr, uintptr_t host_addr, reg_
     tracer.trace(paddr, len, LOAD);
 }
 
+#ifdef CPU_NANHU
+void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info, bool is_amo)
+#else
 void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info)
+#endif
 {
   reg_t vaddr = access_info.vaddr;
   auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_load, vaddr, TLB_FLAGS);
   bool special = access_info.flags.is_special_access() && !access_info.flags.lr;
   if (!tlb_hit || special) {
+    #ifdef CPU_NANHU
+    paddr = translate(access_info, len, is_amo);
+    #else
     paddr = translate(access_info, len);
+    #endif
     host_addr = (uintptr_t)sim->addr_to_mem(paddr);
 
     if (!special)
@@ -332,7 +352,11 @@ void mmu_t::load_slow_path(reg_t original_addr, reg_t len, uint8_t* bytes, xlate
     check_triggers(triggers::OPERATION_LOAD, transformed_addr, access_info.effective_virt);
 
   if ((transformed_addr & (len - 1)) == 0) {
+    #ifdef CPU_NANHU
+    load_slow_path_intrapage(len, bytes, access_info, is_amo);
+    #else 
     load_slow_path_intrapage(len, bytes, access_info);
+    #endif
   } else {
     bool gva = access_info.effective_virt;
 #ifndef CPU_NANHU
@@ -351,10 +375,18 @@ void mmu_t::load_slow_path(reg_t original_addr, reg_t len, uint8_t* bytes, xlate
       throw trap_load_access_fault(gva, transformed_addr, 0, 0);
 
     reg_t len_page0 = std::min(len, PGSIZE - transformed_addr % PGSIZE);
+    #ifdef CPU_NANHU
+    load_slow_path_intrapage(len_page0, bytes, access_info, is_amo);
+    #else
     load_slow_path_intrapage(len_page0, bytes, access_info);
+    #endif
     if (len_page0 != len) {
       auto tail_access_info = generate_access_info(original_addr + len_page0, LOAD, xlate_flags);
+      #ifdef CPU_NANHU
+      load_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, is_amo);
+      #else
       load_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info);
+      #endif
     }
   }
 
@@ -392,12 +424,20 @@ inline void mmu_t::perform_intrapage_store(reg_t vaddr, uintptr_t host_addr, reg
     tracer.trace(paddr, len, STORE);
 }
 
+#ifdef CPU_NANHU
+void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, bool is_amo)
+#else 
 void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store)
+#endif
 {
   reg_t vaddr = access_info.vaddr;
   auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_store, vaddr, TLB_FLAGS);
   if (!tlb_hit || access_info.flags.is_special_access()) {
+    #ifdef CPU_NANHU
+    paddr = translate(access_info, len, is_amo);
+    #else
     paddr = translate(access_info, len);
+    #endif
     host_addr = (uintptr_t)sim->addr_to_mem(paddr);
 
     if (proc && proc->extension_enabled(EXT_ZICCID)) {
@@ -484,13 +524,25 @@ void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes
 #endif
 
     reg_t len_page0 = std::min(len, PGSIZE - transformed_addr % PGSIZE);
+    #ifdef CPU_NANHU
+    store_slow_path_intrapage(len_page0, bytes, access_info, actually_store, is_amo);
+    #else
     store_slow_path_intrapage(len_page0, bytes, access_info, actually_store);
+    #endif
     if (len_page0 != len) {
       auto tail_access_info = generate_access_info(original_addr + len_page0, STORE, xlate_flags);
+      #ifdef CPU_NANHU
+      store_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, actually_store, is_amo);
+      #else
       store_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, actually_store);
+      #endif
     }
   } else {
+    #ifdef CPU_NANHU
+    store_slow_path_intrapage(len, bytes, access_info, actually_store, is_amo);
+    #else
     store_slow_path_intrapage(len, bytes, access_info, actually_store);
+    #endif
   }
 
   if (actually_store && proc && unlikely(proc->get_log_commits_enabled())) {
@@ -739,7 +791,11 @@ bool mmu_t::check_svukte_qualified(reg_t addr, reg_t mode, bool forced_virt)
   return true;
 }
 
+#ifdef CPU_NANHU
+reg_t mmu_t::walk(mem_access_info_t access_info, bool is_amo)
+#else
 reg_t mmu_t::walk(mem_access_info_t access_info)
+#endif
 {
   access_type type = access_info.type;
   reg_t addr = access_info.transformed_vaddr;
@@ -808,6 +864,15 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
       break;
     } else if ((pte & PTE_PBMT) == PTE_PBMT) {
       break;
+    #ifdef CPU_NANHU
+    } else if ((is_amo == true) && ((pte & PTE_PBMT) == 0x4000000000000000 || (pte & PTE_PBMT) == 0x2000000000000000)) { //isamo and pbmt == NC or IO
+      if(type == LOAD){
+        throw_access_exception(virt, addr, LOAD);
+      }
+      else{
+        throw_access_exception(virt, addr, STORE);
+      }
+    #endif
     } else if (PTE_TABLE(pte)) { // next level of page table
       if (pte & (PTE_D | PTE_A | PTE_U | PTE_N | PTE_PBMT))
         break;

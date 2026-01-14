@@ -148,7 +148,7 @@ public:
       auto target_addr = entry.data.target_addr + pgoff;
       sim->difftest_log_mem_load(target_addr, &res, sizeof(T));
     } else {
-      load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags, false);
+      load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags, true);
     }
 
     MMU_OBSERVE_LOAD(addr,from_target(res),sizeof(T));
@@ -344,7 +344,7 @@ public:
 #ifdef CPU_NANHU
       for (size_t offset = 0; offset < (512/blocksz); offset += 1) {
         check_triggers(triggers::OPERATION_STORE, base + (offset * 8), false, transformed_addr, std::nullopt);
-        store<uint64_t>(base + (offset * 8), 0);
+        amo_store<uint64_t>(base + (offset * 8), 0);
       }
 #else
     for (size_t offset = 0; offset < blocksz; offset += 1) {
@@ -362,7 +362,11 @@ public:
     for (size_t offset = 0; offset < blocksz; offset += 1)
       check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
     convert_load_traps_to_store_traps({
+      #ifdef CPU_NANHU
+      const reg_t paddr = translate(access_info, 1, true);
+      #else
       const reg_t paddr = translate(access_info, 1);
+      #endif
       if (sim->reservable(paddr)) {
         if (tracer.interested_in_range(paddr, paddr + PGSIZE, LOAD))
           tracer.clean_invalidate(paddr, blocksz, clean, inval);
@@ -390,7 +394,11 @@ public:
 
     auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_store, vaddr);
     if (!tlb_hit)
+    #ifdef CPU_NANHU
+      paddr = translate(generate_access_info(vaddr, STORE, {}), 1, true);
+    #else
       paddr = translate(generate_access_info(vaddr, STORE, {}), 1);
+    #endif
 
 #ifndef CPU_NANHU
     if (sim->reservable(paddr))
@@ -430,7 +438,7 @@ public:
 
     if (have_reservation) {
       sim->is_amo = true;
-      store(addr, val);
+      amo_store(addr, val);
     }
 #endif
 
@@ -592,7 +600,11 @@ private:
   reg_t s2xlate(reg_t gva, reg_t gpa, access_type type, access_type trap_type, bool virt, bool hlvx, bool is_for_vs_pt_addr);
 
   // perform a page table walk for a given VA; set referenced/dirty bits
+  #ifdef CPU_NANHU
+  reg_t walk(mem_access_info_t access_info, bool is_amo);
+  #else
   reg_t walk(mem_access_info_t access_info);
+  #endif
 
   // handle uncommon cases: TLB misses, page faults, MMIO
   typedef uint16_t insn_parcel_t;
@@ -603,14 +615,22 @@ private:
 #else
   void load_slow_path(reg_t original_addr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags , bool is_amo);
 #endif
+#ifdef CPU_NANHU
+  void load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info, bool is_amo);
+#else
   void load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info);
+#endif
   void perform_intrapage_load(reg_t vaddr, uintptr_t host_addr, reg_t paddr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags);
 #ifndef CPU_NANHU
   void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment);
 #else
   void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment , bool is_amo);
 #endif
+#ifdef CPU_NANHU
+  void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, bool is_amo);
+#else
   void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store);
+#endif
   void perform_intrapage_store(reg_t vaddr, uintptr_t host_addr, reg_t paddr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags);
   bool mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes);
   bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes);
@@ -622,7 +642,11 @@ private:
   }
   void check_triggers(triggers::operation_t operation, reg_t address, bool virt, reg_t tval, std::optional<reg_t> data);
   bool check_svukte_qualified(reg_t addr, reg_t mode, bool forced_virt);
+  #ifdef CPU_NANHU
+  reg_t translate(mem_access_info_t access_info, reg_t len, bool is_amo);
+  #else
   reg_t translate(mem_access_info_t access_info, reg_t len);
+  #endif
 #ifdef MULTICORE_DIFF
   uint64_t golden_pmem_read(reg_t addr, int len);
 #endif
