@@ -204,14 +204,14 @@ public:
 #ifndef CPU_NANHU
       store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false);
 #else
-      store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false, false);
+      store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false, false, false , 0);
 #endif
     }
   }
 
 #ifdef CPU_NANHU
   template<typename T>
-  void ALWAYS_INLINE amo_store(reg_t addr, T val, xlate_flags_t xlate_flags = {}) {
+  void ALWAYS_INLINE amo_store(reg_t addr, T val, xlate_flags_t xlate_flags = {}, bool is_cbo = false, reg_t rs1 = 0) {
     MMU_OBSERVE_STORE(addr, val, sizeof(T));
     bool aligned = (addr & (sizeof(T) - 1)) == 0;
     auto [tlb_hit, host_addr, _] = access_tlb(tlb_store, addr);
@@ -225,7 +225,7 @@ public:
       sim->difftest_log_mem_store(target_addr, &v, sizeof(T));
     } else {
       target_endian<T> target_val = to_target(val);
-      store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false, true);
+      store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false, true, is_cbo, rs1);
     }
   }
 #endif
@@ -272,10 +272,10 @@ public:
       reg_t transformed_addr = access_info.transformed_vaddr;
       check_triggers(triggers::OPERATION_LOAD, transformed_addr, access_info.effective_virt);
 
-      store_slow_path(addr, sizeof(T), nullptr, {}, false, true, true);
+      store_slow_path(addr, sizeof(T), nullptr, {}, false, true, true, false, 0);
       auto lhs = amo_load<T>(addr);
       sim->is_amo = true;
-      amo_store<T>(addr, f(lhs));
+      amo_store<T>(addr, f(lhs), {}, false, 0);
 #endif
       return lhs;
     })
@@ -287,7 +287,7 @@ public:
 #ifndef CPU_NANHU
       store_slow_path(addr, sizeof(T), nullptr, {.ss_access=true}, false, true);
 #else
-      store_slow_path(addr, sizeof(T), nullptr, {.ss_access=true}, false, true, true);
+      store_slow_path(addr, sizeof(T), nullptr, {.ss_access=true}, false, true, true, false, 0);
 #endif
       auto data = load<T>(addr, {.ss_access=true});
       store<T>(addr, value, {.ss_access=true});
@@ -303,7 +303,7 @@ public:
       if (lhs == comp)
         store<T>(addr, swap);
 #else
-      store_slow_path(addr, sizeof(T), nullptr, {}, false, true, true);
+      store_slow_path(addr, sizeof(T), nullptr, {}, false, true, true, false , 0);
       auto lhs = amo_load<T>(addr);
       if (lhs == comp){
         sim->is_amo = true;
@@ -344,7 +344,7 @@ public:
 #ifdef CPU_NANHU
       for (size_t offset = 0; offset < (512/blocksz); offset += 1) {
         check_triggers(triggers::OPERATION_STORE, base + (offset * 8), false, transformed_addr, std::nullopt);
-        amo_store<uint64_t>(base + (offset * 8), 0);
+        amo_store<uint64_t>(base + (offset * 8), 0, {} ,true, addr);
       }
 #else
     for (size_t offset = 0; offset < blocksz; offset += 1) {
@@ -363,7 +363,7 @@ public:
       check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
     convert_load_traps_to_store_traps({
       #ifdef CPU_NANHU
-      const reg_t paddr = translate(access_info, 1, true);
+      const reg_t paddr = translate(access_info, 1, true, true, addr);
       #else
       const reg_t paddr = translate(access_info, 1);
       #endif
@@ -388,14 +388,14 @@ public:
 #ifndef CPU_NANHU
       store_slow_path(vaddr, size, nullptr, {}, false, true);
 #else
-      store_slow_path(vaddr, size, nullptr, {}, false, true, true);
+      store_slow_path(vaddr, size, nullptr, {}, false, true, true, false , 0);
 #endif
     }
 
     auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_store, vaddr);
     if (!tlb_hit)
     #ifdef CPU_NANHU
-      paddr = translate(generate_access_info(vaddr, STORE, {}), 1, true);
+      paddr = translate(generate_access_info(vaddr, STORE, {}), 1, true, false, 0);
     #else
       paddr = translate(generate_access_info(vaddr, STORE, {}), 1);
     #endif
@@ -438,7 +438,7 @@ public:
 
     if (have_reservation) {
       sim->is_amo = true;
-      amo_store(addr, val);
+      amo_store(addr, val, {}, false, 0);
     }
 #endif
 
@@ -601,7 +601,7 @@ private:
 
   // perform a page table walk for a given VA; set referenced/dirty bits
   #ifdef CPU_NANHU
-  reg_t walk(mem_access_info_t access_info, bool is_amo);
+  reg_t walk(mem_access_info_t access_info, bool is_amo, bool is_cbo, reg_t rs1);
   #else
   reg_t walk(mem_access_info_t access_info);
   #endif
@@ -622,12 +622,12 @@ private:
 #endif
   void perform_intrapage_load(reg_t vaddr, uintptr_t host_addr, reg_t paddr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags);
 #ifndef CPU_NANHU
-  void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment);
+  void (reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment);
 #else
-  void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment , bool is_amo);
+  void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment , bool is_amo, bool is_cbo, reg_t rs1);
 #endif
 #ifdef CPU_NANHU
-  void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, bool is_amo);
+  void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, bool is_amo, bool is_cbo, reg_t rs1);
 #else
   void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store);
 #endif
@@ -643,7 +643,7 @@ private:
   void check_triggers(triggers::operation_t operation, reg_t address, bool virt, reg_t tval, std::optional<reg_t> data);
   bool check_svukte_qualified(reg_t addr, reg_t mode, bool forced_virt);
   #ifdef CPU_NANHU
-  reg_t translate(mem_access_info_t access_info, reg_t len, bool is_amo);
+  reg_t translate(mem_access_info_t access_info, reg_t len, bool is_amo, bool is_cbo, reg_t rs1);
   #else
   reg_t translate(mem_access_info_t access_info, reg_t len);
   #endif

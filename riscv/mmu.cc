@@ -89,7 +89,7 @@ void throw_access_exception(bool virt, reg_t addr, access_type type)
 }
 
 #ifdef CPU_NANHU
-reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len, bool is_amo)
+reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len, bool is_amo, bool is_cbo, reg_t rs1)
 #else
 reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
 #endif
@@ -103,12 +103,12 @@ reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
   reg_t mode = (reg_t) access_info.effective_priv;
 
 #ifdef CPU_NANHU
-  reg_t paddr = walk(access_info , is_amo) | (addr & (PGSIZE-1));
+  reg_t paddr = walk(access_info , is_amo, is_cbo, rs1) | (addr & (PGSIZE-1));
 #else
   reg_t paddr = walk(access_info) | (addr & (PGSIZE-1));
 #endif
   if (!pmp_ok(paddr, len, access_info.flags.ss_access ? STORE : type, mode, access_info.flags.hlvx))
-    throw_access_exception(virt, addr, access_info.flags.ss_access ? STORE : type);
+    throw_access_exception(virt, is_cbo ? rs1 : addr, access_info.flags.ss_access ? STORE : type);
   return paddr;
 }
 
@@ -149,7 +149,7 @@ mmu_t::insn_parcel_t mmu_t::fetch_slow_path(reg_t vaddr)
 
   if (!tlb_hit) {
     #ifdef CPU_NANHU
-    paddr = translate(access_info, sizeof(insn_parcel_t), false);
+    paddr = translate(access_info, sizeof(insn_parcel_t), false, false, 0);
     #else
     paddr = translate(access_info, sizeof(insn_parcel_t));
     #endif
@@ -307,7 +307,7 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
   bool special = access_info.flags.is_special_access() && !access_info.flags.lr;
   if (!tlb_hit || special) {
     #ifdef CPU_NANHU
-    paddr = translate(access_info, len, is_amo);
+    paddr = translate(access_info, len, is_amo, false, 0);
     #else
     paddr = translate(access_info, len);
     #endif
@@ -425,7 +425,7 @@ inline void mmu_t::perform_intrapage_store(reg_t vaddr, uintptr_t host_addr, reg
 }
 
 #ifdef CPU_NANHU
-void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, bool is_amo)
+void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, bool is_amo, bool is_cbo, reg_t rs1)
 #else 
 void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store)
 #endif
@@ -434,7 +434,7 @@ void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_acces
   auto [tlb_hit, host_addr, paddr] = access_tlb(tlb_store, vaddr, TLB_FLAGS);
   if (!tlb_hit || access_info.flags.is_special_access()) {
     #ifdef CPU_NANHU
-    paddr = translate(access_info, len, is_amo);
+    paddr = translate(access_info, len, is_amo, is_cbo, rs1);
     #else
     paddr = translate(access_info, len);
     #endif
@@ -457,7 +457,7 @@ void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_acces
 }
 
 #ifdef CPU_NANHU
-void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool UNUSED require_alignment, bool is_amo)
+void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool UNUSED require_alignment, bool is_amo, bool is_cbo, reg_t rs1)
 #else
 void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool UNUSED require_alignment)
 #endif
@@ -525,21 +525,21 @@ void mmu_t::store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes
 
     reg_t len_page0 = std::min(len, PGSIZE - transformed_addr % PGSIZE);
     #ifdef CPU_NANHU
-    store_slow_path_intrapage(len_page0, bytes, access_info, actually_store, is_amo);
+    store_slow_path_intrapage(len_page0, bytes, access_info, actually_store, is_amo, is_cbo, rs1);
     #else
     store_slow_path_intrapage(len_page0, bytes, access_info, actually_store);
     #endif
     if (len_page0 != len) {
       auto tail_access_info = generate_access_info(original_addr + len_page0, STORE, xlate_flags);
       #ifdef CPU_NANHU
-      store_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, actually_store, is_amo);
+      store_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, actually_store, is_amo, is_cbo, rs1);
       #else
       store_slow_path_intrapage(len - len_page0, bytes + len_page0, tail_access_info, actually_store);
       #endif
     }
   } else {
     #ifdef CPU_NANHU
-    store_slow_path_intrapage(len, bytes, access_info, actually_store, is_amo);
+    store_slow_path_intrapage(len, bytes, access_info, actually_store, is_amo, is_cbo, rs1);
     #else
     store_slow_path_intrapage(len, bytes, access_info, actually_store);
     #endif
@@ -792,7 +792,7 @@ bool mmu_t::check_svukte_qualified(reg_t addr, reg_t mode, bool forced_virt)
 }
 
 #ifdef CPU_NANHU
-reg_t mmu_t::walk(mem_access_info_t access_info, bool is_amo)
+reg_t mmu_t::walk(mem_access_info_t access_info, bool is_amo, bool is_cbo, reg_t rs1)
 #else
 reg_t mmu_t::walk(mem_access_info_t access_info)
 #endif
@@ -810,7 +810,7 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
 
   if (ss_access) {
     if (vm.levels == 0)
-      throw trap_store_access_fault(virt, addr, 0, 0);
+      throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
     type = STORE;
   }
 
@@ -822,7 +822,7 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
 #endif
 
   if (proc->extension_enabled(EXT_SVUKTE) && !check_svukte_qualified(addr, mode, access_info.flags.forced_virt)) {
-    throw_page_fault_exception(virt, addr, type);
+    throw_page_fault_exception(virt, is_cbo ? rs1 : addr, type);
   }
 
   bool s_mode = mode == PRV_S;
@@ -867,10 +867,10 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
     #ifdef CPU_NANHU
     } else if ((is_amo == true) && ((pte & PTE_PBMT) == 0x4000000000000000 || (pte & PTE_PBMT) == 0x2000000000000000)) { //isamo and pbmt == NC or IO
       if(type == LOAD){
-        throw_access_exception(virt, addr, LOAD);
+        throw_access_exception(virt, is_cbo ? rs1 : addr, LOAD);
       }
       else{
-        throw_access_exception(virt, addr, STORE);
+        throw_access_exception(virt, is_cbo ? rs1 : addr, STORE);
       }
     #endif
     } else if (PTE_TABLE(pte)) { // next level of page table
@@ -891,13 +891,13 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
       break;
     } else if (ss_page && ((type == STORE && !ss_access) || access_info.flags.clean_inval)) {
       // non-shadow-stack store or CBO with xwr = 010 causes access-fault
-      throw trap_store_access_fault(virt, addr, 0, 0);
+      throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
     } else if (ss_page && type == FETCH) {
       // fetch from shadow stack pages cause instruction access-fault
-      throw trap_instruction_access_fault(virt, addr, 0, 0);
+      throw trap_instruction_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
     } else if ((((pte & PTE_R) && (pte & PTE_W)) || (pte & PTE_X)) && ss_access) {
       // shadow stack access cause store access fault if xwr!=010 and xwr!=001
-      throw trap_store_access_fault(virt, addr, 0, 0);
+      throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
     } else if (type == FETCH || hlvx ? !(pte & PTE_X) :
                type == LOAD          ? !(sse && ss_page) && !(pte & PTE_R) && !(mxr && (pte & PTE_X)) :
                                        !(pte & PTE_W)) {
@@ -929,7 +929,7 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
     }
   }
 
-  throw_page_fault_exception(virt, addr, type);
+  throw_page_fault_exception(virt, is_cbo ? rs1 : addr, type);
 }
 
 void mmu_t::register_memtracer(memtracer_t* t)
