@@ -747,22 +747,41 @@
 #ifdef CPU_NANHU
 #define VI_ZVK_VV_WIDENING_ULOOP(BODY) \
   do { \
-    VI_CHECK_DSS(true); \
-    VI_LOOP_BASE(1) \
+      VI_CHECK_DSS(true); \
+      VI_LOOP_BASE(1) \
+      if (0 == P.VU.vta && i >= vl) { \
+        continue; \
+      } \
+      if ((true == skip && 1 == P.VU.vma && i < vl) || (1 == P.VU.vta && i >= vl)) \
+        mata_action = 2; \
+      else \
+        mata_action = 1; \
       switch (sew) { \
         case e8: { \
           VI_ZVK_VV_WIDENING_U_PARAMS(e8); \
-          BODY \
+          if (1 == mata_action) { \
+            BODY; \
+          } \
+          else \
+            vd_w=vector_agnostic(vd_w); \
           break; \
         } \
         case e16: { \
           VI_ZVK_VV_WIDENING_U_PARAMS(e16); \
-          BODY \
+          if (1 == mata_action) { \
+            BODY; \
+          } \
+          else \
+            vd_w=vector_agnostic(vd_w); \
           break; \
         } \
         case e32: { \
           VI_ZVK_VV_WIDENING_U_PARAMS(e32); \
-          BODY \
+          if (1 == mata_action) { \
+            BODY; \
+          } \
+          else \
+            vd_w=vector_agnostic(vd_w); \
           break; \
         } \
       } \
@@ -813,23 +832,42 @@
   do { \
     VI_CHECK_DSS(false); \
     VI_LOOP_BASE(1) \
-      switch (sew) { \
-        case e8: { \
-          VI_ZVK_VX_WIDENING_U_PARAMS(e8); \
-          BODY \
-          break; \
+    if (0 == P.VU.vta && i >= vl) { \
+      continue; \
+    } \
+    if ((true == skip && 1 == P.VU.vma && i < vl) || (1 == P.VU.vta && i >= vl)) \
+      mata_action = 2; \
+    else \
+      mata_action = 1; \
+    switch (sew) { \
+      case e8: { \
+        VI_ZVK_VX_WIDENING_U_PARAMS(e8); \
+        if (1 == mata_action) { \
+          BODY; \
         } \
-        case e16: { \
-          VI_ZVK_VX_WIDENING_U_PARAMS(e16); \
-          BODY \
-          break; \
-        } \
-        case e32: { \
-          VI_ZVK_VX_WIDENING_U_PARAMS(e32); \
-          BODY \
-          break; \
-        } \
+        else \
+          vd_w=vector_agnostic(vd_w); \
+        break; \
       } \
+      case e16: { \
+        VI_ZVK_VX_WIDENING_U_PARAMS(e16); \
+        if (1 == mata_action) { \
+          BODY; \
+        } \
+        else \
+          vd_w=vector_agnostic(vd_w); \
+        break; \
+      } \
+      case e32: { \
+        VI_ZVK_VX_WIDENING_U_PARAMS(e32); \
+        if (1 == mata_action) { \
+          BODY; \
+        } \
+        else \
+          vd_w=vector_agnostic(vd_w); \
+        break; \
+      } \
+    } \
     VI_LOOP_END \
   } while (0)
 #else
@@ -877,23 +915,42 @@
   do { \
     VI_CHECK_DSS(false); \
     VI_LOOP_BASE(1) \
-      switch (sew) { \
-        case e8: { \
-          VI_ZVK_VI_WIDENING_U_PARAMS(e8); \
-          BODY \
-          break; \
+    if (0 == P.VU.vta && i >= vl) { \
+      continue; \
+    } \
+    if ((true == skip && 1 == P.VU.vma && i < vl) || (1 == P.VU.vta && i >= vl)) \
+      mata_action = 2; \
+    else \
+      mata_action = 1; \
+    switch (sew) { \
+      case e8: { \
+        VI_ZVK_VI_WIDENING_U_PARAMS(e8); \
+        if (1 == mata_action) { \
+          BODY; \
         } \
-        case e16: { \
-          VI_ZVK_VI_WIDENING_U_PARAMS(e16); \
-          BODY \
-          break; \
-        } \
-        case e32: { \
-          VI_ZVK_VI_WIDENING_U_PARAMS(e32); \
-          BODY \
-          break; \
-        } \
+        else \
+          vd_w=vector_agnostic(vd_w); \
+        break; \
       } \
+      case e16: { \
+        VI_ZVK_VI_WIDENING_U_PARAMS(e16); \
+        if (1 == mata_action) { \
+          BODY; \
+        } \
+        else \
+          vd_w=vector_agnostic(vd_w); \
+        break; \
+      } \
+      case e32: { \
+        VI_ZVK_VI_WIDENING_U_PARAMS(e32); \
+        if (1 == mata_action) { \
+          BODY; \
+        } \
+        else \
+          vd_w=vector_agnostic(vd_w); \
+        break; \
+      } \
+    } \
     VI_LOOP_END \
   } while (0)
 #else
