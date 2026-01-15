@@ -552,7 +552,7 @@ public:
     return target_big_endian? target_endian<T>::to_be(n) : target_endian<T>::to_le(n);
   }
 
-#ifdef CPU_NANHU
+#ifdef DIFFTEST
   void set_cache_blocksz(reg_t size)
   {
     blocksz = size;
@@ -622,7 +622,7 @@ private:
 #endif
   void perform_intrapage_load(reg_t vaddr, uintptr_t host_addr, reg_t paddr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags);
 #ifndef CPU_NANHU
-  void (reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment);
+  void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment);
 #else
   void store_slow_path(reg_t original_addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment , bool is_amo, bool is_cbo, reg_t rs1);
 #endif

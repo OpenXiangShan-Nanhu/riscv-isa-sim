@@ -360,7 +360,7 @@ bool sim_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
   return bus.store(paddr, len, bytes);
 }
 
-#ifdef CPU_NANHU
+#ifdef DIFFTEST
 bool sim_t::set_mmio(reg_t paddr, size_t len, const uint8_t* bytes)
 {
   return mmio_store(paddr, len, bytes);

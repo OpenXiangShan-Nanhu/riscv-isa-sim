@@ -108,7 +108,12 @@ reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
   reg_t paddr = walk(access_info) | (addr & (PGSIZE-1));
 #endif
   if (!pmp_ok(paddr, len, access_info.flags.ss_access ? STORE : type, mode, access_info.flags.hlvx))
+
+#ifdef CPU_NANHU
     throw_access_exception(virt, is_cbo ? rs1 : addr, access_info.flags.ss_access ? STORE : type);
+#else
+    throw_access_exception(virt, addr, access_info.flags.ss_access ? STORE : type);
+#endif
   return paddr;
 }
 
@@ -810,7 +815,11 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
 
   if (ss_access) {
     if (vm.levels == 0)
+#ifdef CPU_NANHU
       throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
+#else
+      throw trap_store_access_fault(virt, addr, 0, 0);
+#endif
     type = STORE;
   }
 
@@ -822,7 +831,12 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
 #endif
 
   if (proc->extension_enabled(EXT_SVUKTE) && !check_svukte_qualified(addr, mode, access_info.flags.forced_virt)) {
+
+#ifdef CPU_NANHU
     throw_page_fault_exception(virt, is_cbo ? rs1 : addr, type);
+#else 
+    throw_page_fault_exception(virt, addr, type);
+#endif
   }
 
   bool s_mode = mode == PRV_S;
@@ -853,7 +867,9 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
     bool sse = virt ? (proc->get_state()->henvcfg->read() & HENVCFG_SSE) : (proc->get_state()->menvcfg->read() & MENVCFG_SSE);
     bool ss_page = !(pte & PTE_R) && (pte & PTE_W) && !(pte & PTE_X);
     int napot_bits = ((pte & PTE_N) ? (ctz(ppn) + 1) : 0);
+#ifdef CPU_NANHU
     bool aligned = (addr & (len - 1)) == 0;
+#endif
 
     if (pte & PTE_RSVD) {
       break;
@@ -865,7 +881,7 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
       break;
     } else if ((pte & PTE_PBMT) == PTE_PBMT) {
       break;
-    #ifdef CPU_NANHU
+#ifdef CPU_NANHU
     } else if ((is_amo == true) && ((pte & PTE_PBMT) == 0x4000000000000000 || (pte & PTE_PBMT) == 0x2000000000000000)) { //isamo/iscbo and pbmt == NC or IO
       if(type == LOAD){
         throw_access_exception(virt, is_cbo ? rs1 : addr, LOAD);
@@ -887,7 +903,7 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
       else{
         throw_access_exception(virt, addr, STORE);
       }
-    #endif
+#endif
     } else if (PTE_TABLE(pte)) { // next level of page table
       if (pte & (PTE_D | PTE_A | PTE_U | PTE_N | PTE_PBMT))
         break;
@@ -905,14 +921,28 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
     } else if ((ppn & ((reg_t(1) << ptshift) - 1)) != 0) {
       break;
     } else if (ss_page && ((type == STORE && !ss_access) || access_info.flags.clean_inval)) {
+
+#ifdef CPU_NANHU
+      throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
+#else
       // non-shadow-stack store or CBO with xwr = 010 causes access-fault
-      throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
+      throw trap_store_access_fault(virt, addr, 0, 0);
+#endif
     } else if (ss_page && type == FETCH) {
-      // fetch from shadow stack pages cause instruction access-fault
+#ifdef CPU_NANHU
       throw trap_instruction_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
+#else
+      // fetch from shadow stack pages cause instruction access-fault
+      throw trap_instruction_access_fault(virt, addr, 0, 0);
+#endif
     } else if ((((pte & PTE_R) && (pte & PTE_W)) || (pte & PTE_X)) && ss_access) {
-      // shadow stack access cause store access fault if xwr!=010 and xwr!=001
+#ifdef CPU_NANHU
       throw trap_store_access_fault(virt, is_cbo ? rs1 : addr, 0, 0);
+#else
+      // shadow stack access cause store access fault if xwr!=010 and xwr!=001
+      throw trap_store_access_fault(virt, addr, 0, 0);
+#endif
+
     } else if (type == FETCH || hlvx ? !(pte & PTE_X) :
                type == LOAD          ? !(sse && ss_page) && !(pte & PTE_R) && !(mxr && (pte & PTE_X)) :
                                        !(pte & PTE_W)) {
@@ -943,8 +973,11 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
       return s2xlate(addr, phys, type, type, virt, hlvx, false) & ~page_mask;
     }
   }
-
+#ifdef CPU_NANHU
   throw_page_fault_exception(virt, is_cbo ? rs1 : addr, type);
+#else
+  throw_page_fault_exception(virt, addr, type);
+#endif
 }
 
 void mmu_t::register_memtracer(memtracer_t* t)

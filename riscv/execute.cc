@@ -297,7 +297,7 @@ void processor_t::step(size_t n)
           insn_fetch_t fetch = mmu->load_insn(pc);
           if (debug && !state.serialized)
             disasm(fetch.insn);
-#ifdef DIFFTEST
+#ifdef CPU_NANHU
           sim->difftest_log("pc = 0x%lx inst 0x%x", pc, fetch.insn);
 #endif
           if((int)fetch.insn.bits() == 0x5006b){

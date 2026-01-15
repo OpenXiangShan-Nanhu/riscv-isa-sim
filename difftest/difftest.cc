@@ -75,11 +75,8 @@ void DifftestRef::get_regs(diff_context_t *ctx) {
   ctx->sstatus = state->nonvirtual_sstatus->read();
   ctx->scause = state->nonvirtual_scause->read();
   ctx->sepc = state->nonvirtual_sepc->read();
-  ctx->satp = state->nonvirtual_satp->read();
   ctx->mip = state->mip->read();
   ctx->mie = state->mie->read();
-  ctx->mscratch = state->mscratch->read();
-  ctx->sscratch = state->nonvirtual_sscratch->read();
   ctx->mideleg = state->mideleg->read();
   ctx->medeleg = state->medeleg->read();
   ctx->mtval = state->mtval->read();
@@ -87,6 +84,12 @@ void DifftestRef::get_regs(diff_context_t *ctx) {
   ctx->mtvec = state->mtvec->read();
   ctx->stvec = state->nonvirtual_stvec->read();
   ctx->priv = state->prv;
+#ifdef CPU_NANHU
+  ctx->satp = state->nonvirtual_satp->read();
+  ctx->mscratch = state->mscratch->read();
+  ctx->sscratch = state->nonvirtual_sscratch->read();
+#endif
+
   // Some of above CSRs need to use nonvirtual_ type, as SPIKE redirect them
   // when virtualization is on (V = 1).
   // Some nonvirtual_ CSRs are added by XiangShan Difftest.
@@ -183,20 +186,11 @@ void DifftestRef::set_regs(diff_context_t *ctx, bool on_demand) {
   if (!on_demand || state->nonvirtual_sepc->read() != ctx->sepc) {
     state->nonvirtual_sepc->write(ctx->sepc);
   }
-  if (!on_demand || state->nonvirtual_satp->read() != ctx->satp) {
-    state->nonvirtual_satp->write(ctx->satp);
-  }
   if (!on_demand || state->mip->read() != ctx->mip) {
     state->mip->write(ctx->mip);
   }
   if (!on_demand || state->mie->read() != ctx->mie) {
     state->mie->write(ctx->mie);
-  }
-  if (!on_demand || state->mscratch->read() != ctx->mscratch) {
-    state->mscratch->write(ctx->mscratch);
-  }
-  if (!on_demand || state->nonvirtual_sscratch->read() != ctx->sscratch) {
-    state->nonvirtual_sscratch->write(ctx->sscratch);
   }
   if (!on_demand || state->mideleg->read() != ctx->mideleg) {
     state->mideleg->write(ctx->mideleg);
@@ -219,6 +213,19 @@ void DifftestRef::set_regs(diff_context_t *ctx, bool on_demand) {
   if (!on_demand || state->prv != ctx->priv) {
     state->prv = ctx->priv;
   }
+#ifdef CPU_NANHU
+  if (!on_demand || state->nonvirtual_satp->read() != ctx->satp) {
+    state->nonvirtual_satp->write(ctx->satp);
+  }
+  if (!on_demand || state->mscratch->read() != ctx->mscratch) {
+    state->mscratch->write(ctx->mscratch);
+  }
+  if (!on_demand || state->nonvirtual_sscratch->read() != ctx->sscratch) {
+    state->nonvirtual_sscratch->write(ctx->sscratch);
+  }
+#endif
+
+
 #ifdef DIFF_DEBUG_MODE
   if (!on_demand || state->debug_mode->read() != ctx->debugMode) {
     state->debug_mode = ctx->debugMode;

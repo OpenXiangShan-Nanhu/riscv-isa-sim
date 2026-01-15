@@ -6,7 +6,7 @@
 #include <map>
 #include "decode.h"
 #include "cfg.h"
-#ifdef CPU_NANHU
+#ifdef DIFFTEST
 #include "difftest/difftrace.h"
 #endif
 
@@ -14,7 +14,7 @@ class processor_t;
 class mmu_t;
 
 // this is the interface to the simulator used by the processors and memory
-#ifndef CPU_NANHU
+#ifndef DIFFTEST
 class simif_t
 #else
 class simif_t : public diff_trace_t
