@@ -103,7 +103,7 @@ reg_t mmu_t::translate(mem_access_info_t access_info, reg_t len)
   reg_t mode = (reg_t) access_info.effective_priv;
 
 #ifdef CPU_NANHU
-  reg_t paddr = walk(access_info , is_amo, is_cbo, rs1) | (addr & (PGSIZE-1));
+  reg_t paddr = walk(access_info, len, is_amo, is_cbo, rs1) | (addr & (PGSIZE-1));
 #else
   reg_t paddr = walk(access_info) | (addr & (PGSIZE-1));
 #endif
@@ -792,7 +792,7 @@ bool mmu_t::check_svukte_qualified(reg_t addr, reg_t mode, bool forced_virt)
 }
 
 #ifdef CPU_NANHU
-reg_t mmu_t::walk(mem_access_info_t access_info, bool is_amo, bool is_cbo, reg_t rs1)
+reg_t mmu_t::walk(mem_access_info_t access_info, reg_t len, bool is_amo, bool is_cbo, reg_t rs1)
 #else
 reg_t mmu_t::walk(mem_access_info_t access_info)
 #endif
@@ -853,6 +853,7 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
     bool sse = virt ? (proc->get_state()->henvcfg->read() & HENVCFG_SSE) : (proc->get_state()->menvcfg->read() & MENVCFG_SSE);
     bool ss_page = !(pte & PTE_R) && (pte & PTE_W) && !(pte & PTE_X);
     int napot_bits = ((pte & PTE_N) ? (ctz(ppn) + 1) : 0);
+    bool aligned = (addr & (len - 1)) == 0;
 
     if (pte & PTE_RSVD) {
       break;
@@ -865,12 +866,26 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
     } else if ((pte & PTE_PBMT) == PTE_PBMT) {
       break;
     #ifdef CPU_NANHU
-    } else if ((is_amo == true) && ((pte & PTE_PBMT) == 0x4000000000000000 || (pte & PTE_PBMT) == 0x2000000000000000)) { //isamo and pbmt == NC or IO
+    } else if ((is_amo == true) && ((pte & PTE_PBMT) == 0x4000000000000000 || (pte & PTE_PBMT) == 0x2000000000000000)) { //isamo/iscbo and pbmt == NC or IO
       if(type == LOAD){
         throw_access_exception(virt, is_cbo ? rs1 : addr, LOAD);
       }
       else{
         throw_access_exception(virt, is_cbo ? rs1 : addr, STORE);
+      }
+    } else if ((aligned == 0) & ((pte & PTE_PBMT) == 0x2000000000000000)) { // pbmt == NC and unaligned
+      if(type == LOAD){
+        throw trap_load_address_misaligned(virt, addr, 0, 0);
+      }
+      else {
+        throw trap_store_address_misaligned(virt, addr, 0, 0);
+      }
+    } else if ((aligned == 0) & ((pte & PTE_PBMT) == 0x4000000000000000)) { // pbmt == IO and unaligned
+      if(type == LOAD){
+        throw_access_exception(virt, addr, LOAD);
+      }
+      else{
+        throw_access_exception(virt, addr, STORE);
       }
     #endif
     } else if (PTE_TABLE(pte)) { // next level of page table

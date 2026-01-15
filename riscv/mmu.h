@@ -601,7 +601,7 @@ private:
 
   // perform a page table walk for a given VA; set referenced/dirty bits
   #ifdef CPU_NANHU
-  reg_t walk(mem_access_info_t access_info, bool is_amo, bool is_cbo, reg_t rs1);
+  reg_t walk(mem_access_info_t access_info, reg_t len, bool is_amo, bool is_cbo, reg_t rs1);
   #else
   reg_t walk(mem_access_info_t access_info);
   #endif
